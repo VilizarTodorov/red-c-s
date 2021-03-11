@@ -1,5 +1,5 @@
 import { User } from "../entities/User";
-import { Resolver, Mutation, Arg, InputType, Field, Ctx, ObjectType } from "type-graphql";
+import { Resolver, Mutation, Arg, InputType, Field, Ctx, ObjectType, Query } from "type-graphql";
 import argon2 from "argon2";
 import { MyContext } from "../types";
 
@@ -44,8 +44,21 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  @Mutation(() => User)
-  async register(@Arg("options", () => UserInput) options: UserInput, @Ctx() { em }: MyContext): Promise<User> {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { req, em }: MyContext) {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const user = await em.findOne(User, { id: req.session.userId });
+    return user;
+  }
+
+  @Mutation(() => UserResponse)
+  async register(
+    @Arg("options", () => UserInput) options: UserInput,
+    @Ctx() { em, req }: MyContext
+  ): Promise<UserResponse> {
     const hashedPassword = await argon2.hash(options.password);
 
     const user = em.create(User, {
@@ -54,12 +67,24 @@ export class UserResolver {
       password: hashedPassword,
     });
 
-    await em.persistAndFlush(user);
-    return user;
+    try {
+      await em.persistAndFlush(user);
+    } catch (error) {
+      return {
+        errors: [{ field: "name", message: error.message }],
+      };
+    }
+
+    // login user after register
+    req.session.userId = user.id;
+    return { user };
   }
 
   @Mutation(() => UserResponse)
-  async login(@Arg("options", () => LoginInput) options: LoginInput, @Ctx() { em }: MyContext): Promise<UserResponse> {
+  async login(
+    @Arg("options", () => LoginInput) options: LoginInput,
+    @Ctx() { em, req }: MyContext
+  ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
 
     if (!user) {
@@ -76,6 +101,8 @@ export class UserResolver {
         errors: [{ field: "name", message: "Username or password is incorrect" }],
       };
     }
+
+    req.session.userId = user.id;
 
     return { user };
   }

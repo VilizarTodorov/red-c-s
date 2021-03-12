@@ -11,6 +11,7 @@ import { UserResolver } from "./resolvers/User";
 import { buildSchema } from "type-graphql";
 import session from "express-session";
 import { MyContext } from "./types";
+import cors from "cors";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
@@ -19,9 +20,16 @@ const main = async () => {
   const app = express();
 
   app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+    })
+  );
+
+  app.use(
     session({
-      // add storage for production 
-      //uses memory storage per default 
+      // add storage for production
+      //uses memory storage per default
       name: "cookieName",
       secret: "my secret",
       resave: false,
@@ -40,7 +48,7 @@ const main = async () => {
     context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false });
 
   app.listen(PORT, () => {
     console.log(`listening on port:${PORT}`);

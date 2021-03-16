@@ -112,13 +112,13 @@ export class UserResolver {
   async logout(@Ctx() { req, res }: MyContext): Promise<Boolean> {
     return new Promise((resolve) =>
       req.session.destroy((err) => {
-        res.clearCookie(COOKIE_NAME);
         if (err) {
           console.log(err);
           resolve(false);
           return;
         }
 
+        res.clearCookie(COOKIE_NAME);
         resolve(true);
       })
     );

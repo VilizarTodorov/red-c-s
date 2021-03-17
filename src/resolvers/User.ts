@@ -149,7 +149,7 @@ export class UserResolver {
   async resetPassword(
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     let userId = -1;
     try {
@@ -184,7 +184,7 @@ export class UserResolver {
     try {
       jwt.verify(token, SECRET);
     } catch (error) {
-      console.log(error)
+      console.log(error);
       return {
         errors: [
           {
@@ -199,6 +199,9 @@ export class UserResolver {
     user.password = hashedPassword;
 
     await em.persistAndFlush(user);
+
+    // log in user after password reset
+    req.session.userId = user.id;
 
     return { user };
   }

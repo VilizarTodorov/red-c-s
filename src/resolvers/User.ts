@@ -3,6 +3,8 @@ import { Resolver, Mutation, Arg, InputType, Field, Ctx, ObjectType, Query } fro
 import argon2 from "argon2";
 import { MyContext } from "../types";
 import { COOKIE_NAME } from "../constants";
+// import sendEmail from "../utils/sendEMail";
+import jwt from "jsonwebtoken";
 
 @InputType()
 class UserInput {
@@ -89,7 +91,6 @@ export class UserResolver {
     const user = await em.findOne(User, { username: options.username });
 
     if (!user) {
-      console.log("a");
       return {
         errors: [{ field: "username", message: "Cannot find user" }],
       };
@@ -122,5 +123,83 @@ export class UserResolver {
         resolve(true);
       })
     );
+  }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(@Arg("email") email: string, @Ctx() { em }: MyContext): Promise<Boolean> {
+    const user = await em.findOne(User, { email });
+
+    if (!user) {
+      // no user with this email
+      return false;
+    }
+
+    const SECRET = `${user.createdAt}${user.id}${user.password}`;
+    const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: "1h" });
+    console.log(token);
+
+    // await sendEmail(
+    //   email,
+    //   `<a href="http://localhost:3000/reset-password/${token}">reset password</a> this link expires in an hour`
+    // );
+    return true;
+  }
+
+  @Mutation(() => UserResponse)
+  async resetPassword(
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() { em }: MyContext
+  ): Promise<UserResponse> {
+    let userId = -1;
+    try {
+      const payload = jwt.decode(token);
+      userId = payload.userId;
+    } catch (error) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "invalid token at decode",
+          },
+        ],
+      };
+    }
+
+    const user = await em.findOne(User, { id: userId });
+    if (!user) {
+      console.log("user does not exist");
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "user does not exist",
+          },
+        ],
+      };
+    }
+
+    const SECRET = `${user.createdAt}${user.id}${user.password}`;
+
+    try {
+      jwt.verify(token, SECRET);
+    } catch (error) {
+      console.log(error)
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "invalid token at verify",
+          },
+        ],
+      };
+    }
+
+    const hashedPassword = await argon2.hash(newPassword);
+    user.password = hashedPassword;
+
+    await em.persistAndFlush(user);
+
+    return { user };
   }
 }

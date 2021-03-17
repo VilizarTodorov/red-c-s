@@ -12,13 +12,8 @@ import { buildSchema } from "type-graphql";
 import session from "express-session";
 import { MyContext } from "./types";
 import cors from "cors";
-// import sendEmail from "./utils/sendEMail";
 
 const main = async () => {
-
-  // sendEmail()
-  //   .then((x) => console.log(x))
-  //   .catch((x) => console.log(x));
   const orm = await MikroORM.init(mikroOrmConfig);
   orm.getMigrator().up();
 

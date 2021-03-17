@@ -3,7 +3,7 @@ import { Resolver, Mutation, Arg, InputType, Field, Ctx, ObjectType, Query } fro
 import argon2 from "argon2";
 import { MyContext } from "../types";
 import { COOKIE_NAME } from "../constants";
-// import sendEmail from "../utils/sendEMail";
+import sendEmail from "../utils/sendEMail";
 import jwt from "jsonwebtoken";
 
 @InputType()
@@ -138,10 +138,10 @@ export class UserResolver {
     const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: "1h" });
     console.log(token);
 
-    // await sendEmail(
-    //   email,
-    //   `<a href="http://localhost:3000/reset-password/${token}">reset password</a> this link expires in an hour`
-    // );
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/reset-password/${token}">reset password</a> this link expires in an hour`
+    );
     return true;
   }
 

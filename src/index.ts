@@ -1,7 +1,7 @@
 import "reflect-metadata";
-import { MikroORM } from "@mikro-orm/core";
+// import { MikroORM } from "@mikro-orm/core";
 import { COOKIE_NAME, __prod__ } from "./constants";
-import mikroOrmConfig from "./mikro-orm.config";
+// import mikroOrmConfig from "./mikro-orm.config";
 import express from "express";
 import { PORT } from "./constants";
 import { ApolloServer } from "apollo-server-express";
@@ -12,10 +12,23 @@ import { buildSchema } from "type-graphql";
 import session from "express-session";
 import { MyContext } from "./types";
 import cors from "cors";
+import { createConnection } from "typeorm";
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 
 const main = async () => {
-  const orm = await MikroORM.init(mikroOrmConfig);
-  orm.getMigrator().up();
+  const connection = await createConnection({
+    type: "postgres",
+    database: "reddit2",
+    username: "postgres",
+    password: "5550155",
+    logging: true,
+    synchronize: true,
+    entities: [Post, User],
+  });
+
+  // const orm = await MikroORM.init(mikroOrmConfig);
+  // orm.getMigrator().up();
 
   const app = express();
 
@@ -45,7 +58,7 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({ resolvers: [HelloResolver, PostResolver, UserResolver], validate: false }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }): MyContext => ({ req, res }),
   });
 
   apolloServer.applyMiddleware({ app, cors: false });

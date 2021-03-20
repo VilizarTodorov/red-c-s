@@ -1,5 +1,17 @@
 import { Post } from "../entities/Post";
-import { Resolver, Query, Arg, Int, Mutation, InputType, Field, Ctx, UseMiddleware } from "type-graphql";
+import {
+  Resolver,
+  Query,
+  Arg,
+  Int,
+  Mutation,
+  InputType,
+  Field,
+  Ctx,
+  UseMiddleware,
+  FieldResolver,
+  Root,
+} from "type-graphql";
 import { MyContext } from "../types";
 import isAuth from "../middleware/isAuth";
 import { getConnection } from "typeorm";
@@ -12,10 +24,16 @@ class PostInput {
   text: string;
 }
 
-@Resolver()
+@Resolver(Post)
 export class PostResolver {
+
+  @FieldResolver(() => String)
+  textSnippet(@Root() root: Post) {
+    return root.text.slice(0, 50);
+  }
+
   @Query(() => [Post])
-  posts(@Arg("limit") limit: number, @Arg("cursor", { nullable: true }) cursor: string): Promise<Post[]> {
+  posts(@Arg("limit", () => Int) limit: number, @Arg("cursor", { nullable: true }) cursor: string): Promise<Post[]> {
     // return Post.find();
     const realLimit = Math.min(50, limit);
     const qb = getConnection()

@@ -45,7 +45,7 @@ class UserResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
   @Query(() => User, { nullable: true })
   me(@Ctx() { req }: MyContext) {
@@ -79,7 +79,6 @@ export class UserResolver {
         errors: [{ field: "name", message: error.message }],
       };
     }
-
   }
 
   @Mutation(() => UserResponse)

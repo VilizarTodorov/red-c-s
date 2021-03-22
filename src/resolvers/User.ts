@@ -1,5 +1,5 @@
 import { User } from "../entities/User";
-import { Resolver, Mutation, Arg, InputType, Field, Ctx, ObjectType, Query } from "type-graphql";
+import { Resolver, Mutation, Arg, InputType, Field, Ctx, ObjectType, Query, FieldResolver, Root } from "type-graphql";
 import argon2 from "argon2";
 import { MyContext } from "../types";
 import { COOKIE_NAME } from "../constants";
@@ -47,6 +47,16 @@ class UserResponse {
 
 @Resolver(User)
 export class UserResolver {
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    if (req.session.userId === user.id) {
+      return user.email;
+    }
+
+    //current user wants to see someone elses email
+    return "";
+  }
+
   @Query(() => User, { nullable: true })
   me(@Ctx() { req }: MyContext) {
     if (!req.session.userId) {

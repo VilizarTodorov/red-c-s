@@ -31,8 +31,7 @@ const main = async () => {
 
   await connection.runMigrations()
 
-  // const orm = await MikroORM.init(mikroOrmConfig);
-  // orm.getMigrator().up();
+  // Post.delete({})
 
   const app = express();
 

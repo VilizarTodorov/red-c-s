@@ -11,6 +11,7 @@ import {
   UseMiddleware,
   FieldResolver,
   Root,
+  ObjectType,
 } from "type-graphql";
 import { MyContext } from "../types";
 import isAuth from "../middleware/isAuth";
@@ -24,29 +25,42 @@ class PostInput {
   text: string;
 }
 
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+  @Field()
+  hasMore: boolean;
+}
+
 @Resolver(Post)
 export class PostResolver {
-
   @FieldResolver(() => String)
   textSnippet(@Root() root: Post) {
     return root.text.slice(0, 50);
   }
 
-  @Query(() => [Post])
-  posts(@Arg("limit", () => Int) limit: number, @Arg("cursor", { nullable: true }) cursor: string): Promise<Post[]> {
+  @Query(() => PaginatedPosts)
+  async posts(
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", { nullable: true }) cursor: string
+  ): Promise<PaginatedPosts> {
     // return Post.find();
     const realLimit = Math.min(50, limit);
+    const realLimitPlusOne = realLimit + 1
     const qb = getConnection()
       .getRepository(Post)
       .createQueryBuilder("posts")
       .orderBy('"createdAt"', "DESC")
-      .take(realLimit);
+      .take(realLimitPlusOne);
 
     if (cursor) {
       qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
     }
 
-    return qb.getMany();
+    const posts = await qb.getMany();
+
+    return { posts:posts.slice(0,realLimit), hasMore: posts.length === realLimitPlusOne };
   }
 
   @Query(() => Post, { nullable: true })

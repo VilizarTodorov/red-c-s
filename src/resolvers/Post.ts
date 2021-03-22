@@ -16,7 +16,6 @@ import {
 import { MyContext } from "../types";
 import isAuth from "../middleware/isAuth";
 import { getConnection } from "typeorm";
-
 @InputType()
 class PostInput {
   @Field()
@@ -40,12 +39,36 @@ export class PostResolver {
     return root.text.slice(0, 50);
   }
 
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg("postId", () => Int) postId: number,
+    @Arg("value", () => Int) value: number,
+    @Ctx() { req }: MyContext
+  ) {
+    const userId = req.session.userId;
+    const isUpdoot = value !== -1;
+    const realValue = isUpdoot ? 1 : -1;
+
+    await getConnection().query(
+      `
+    START TRANSACTION;
+    insert into updoot ("userId", "postId", value)
+    values (${userId},${postId},${realValue});
+    update post
+    set points = points + ${realValue}
+    where id = ${postId};
+    COMMIT;
+    `
+    );
+    return true;
+  }
+
   @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", { nullable: true }) cursor: string
   ): Promise<PaginatedPosts> {
-    // return Post.find();
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = realLimit + 1;
 
@@ -73,21 +96,6 @@ export class PostResolver {
     `,
       replacements
     );
-
-    // const qb = getConnection()
-    //   .getRepository(Post)
-    //   .createQueryBuilder("posts")
-    //   .innerJoinAndSelect("posts.creator", "creator", 'creator.id = p."creatorId"')
-    //   .orderBy('posts."createdAt"', "DESC")
-    //   .take(realLimitPlusOne);
-
-    // if (cursor) {
-    //   qb.where('posts."createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
-    // }
-
-    // const posts = await qb.getMany();
-
-    console.log(posts);
 
     return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimitPlusOne };
   }

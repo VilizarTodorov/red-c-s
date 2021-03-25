@@ -23,6 +23,6 @@ export class Updoot extends BaseEntity {
   postId: number;
 
   // @Field(() => Post)
-  @ManyToOne(() => Post, (user) => user.updoots)
+  @ManyToOne(() => Post, (user) => user.updoots, { onDelete: "CASCADE" })
   post: Post;
 }

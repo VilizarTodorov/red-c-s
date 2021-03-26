@@ -1,7 +1,5 @@
 import "reflect-metadata";
-// import { MikroORM } from "@mikro-orm/core";
 import { COOKIE_NAME, __prod__ } from "./constants";
-// import mikroOrmConfig from "./mikro-orm.config";
 import express from "express";
 import { PORT } from "./constants";
 import { ApolloServer } from "apollo-server-express";
@@ -17,6 +15,8 @@ import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import path from "path";
 import { Updoot } from "./entities/Updoot";
+import createUserLoader from "./utils/createUserLoader";
+import createUpdootLoader from "./utils/createUpdootLoader";
 
 const main = async () => {
   const connection = await createConnection({
@@ -62,7 +62,7 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({ resolvers: [HelloResolver, PostResolver, UserResolver], validate: false }),
-    context: ({ req, res }): MyContext => ({ req, res }),
+    context: ({ req, res }): MyContext => ({ req, res, userLoader: createUserLoader(),updootLoader:createUpdootLoader() }),
   });
 
   apolloServer.applyMiddleware({ app, cors: false });
